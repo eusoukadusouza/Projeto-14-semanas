@@ -386,10 +386,13 @@ export default function Home() {
     }
   }
   const handleCheckHabitToday = async (habitId: string) => {
+    const todayStr = new Date().toISOString().split('T')[0]
+    // Se já marcado localmente, não faz nada
+    if (checks.some((c) => c.habit_id === habitId && c.check_date === todayStr)) return
     if (checkingHabitId) return
     setCheckingHabitId(habitId)
     try {
-      const today = new Date().toISOString().split('T')[0]
+      const today = todayStr
       const { data: session } = await supabase.auth.getSession()
       const user = session.session?.user
       if (!user) throw new Error('Usuário não autenticado')
@@ -547,6 +550,15 @@ export default function Home() {
         )}
       </div>
 
+      {/* BANNER DE BOAS-VINDAS: mensagem breve acima do card da semana */}
+      <div className="w-full max-w-md mt-4 p-4 rounded-lg bg-gradient-to-r from-yellow-400/6 to-transparent border border-yellow-300/10">
+        <h3 className="text-lg font-semibold text-white">Bem-vindo ao seu Projeto de 14 Semanas.</h3>
+        <p className="text-sm text-gray-300 mt-2">Você está exatamente na semana certa.</p>
+        <p className="text-sm text-gray-300 mt-1">Cada semana tem um foco. Cada dia tem uma ação simples. O progresso vem da repetição.</p>
+        <p className="text-sm text-gray-300 mt-3">Aqui você não precisa fazer tudo. Você só precisa fazer o que precisa ser feito hoje.</p>
+        <p className="text-sm text-gray-300 mt-1 font-medium">Constância vence intensidade.</p>
+      </div>
+
 <div className="w-full max-w-md rounded-lg p-4 shadow-xl border border-transparent bg-gradient-to-br from-indigo-800 via-purple-800 to-black">
   <div className="flex items-center justify-between mb-2">
     <span className="text-xs uppercase tracking-widest text-gray-400">
@@ -582,21 +594,31 @@ export default function Home() {
             return todays.length === 0 ? (
               <p className="text-sm text-gray-300">Nenhum hábito para hoje.</p>
             ) : (
-              <ul className="space-y-2">
-                {todays.map((h) => (
-                  <li key={h.id} className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm">{h.name}</p>
-                      <p className="text-xs text-gray-500">{h.frequency === 'daily' ? 'Diário' : 'Semanal'}</p>
-                    </div>
-                    {checks.some((c) => c.habit_id === h.id && c.check_date === todayStr) ? (
-                      <span className="text-xs text-green-600 font-semibold">✔</span>
-                    ) : (
-                      <button onClick={() => handleCheckHabitToday(h.id)} disabled={checkingHabitId === h.id} className="text-xs px-2 py-1 rounded bg-black text-white">Check</button>
-                    )}
-                  </li>
-                ))}
-              </ul>
+              <>
+                <ul className="space-y-2">
+                  {todays.map((h) => (
+                    <li key={h.id} className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm">{h.name}</p>
+                        <p className="text-xs text-gray-500">{h.frequency === 'daily' ? 'Diário' : 'Semanal'}</p>
+                      </div>
+                      {checks.some((c) => c.habit_id === h.id && c.check_date === todayStr) ? (
+                        <span className="text-xs text-green-600 font-semibold">✔</span>
+                      ) : (
+                        <button onClick={() => handleCheckHabitToday(h.id)} disabled={checkingHabitId === h.id} className="text-xs px-2 py-1 rounded bg-black text-white">Check</button>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+
+                {/* Se todos os hábitos do dia estiverem marcados, mostrar mensagem de conclusão */}
+                {todays.length > 0 && todays.every((th) => checks.some((c) => c.habit_id === th.id && c.check_date === todayStr)) && (
+                  <div className="mt-3 p-3 rounded bg-green-900/20 text-center">
+                    <p className="text-sm font-semibold text-green-200">Dia concluído.</p>
+                    <p className="text-xs text-gray-300 mt-1">Agora descanse. A constância trabalha enquanto você dorme.</p>
+                  </div>
+                )}
+              </>
             )
           })()
         )}
@@ -612,17 +634,19 @@ export default function Home() {
         ) : (
           <ul className="space-y-2">
             {userHabits.map((h) => {
-              const totalChecks = checks.filter(
-               (c) => c.habit_id === h.id
-               ).length
-              const totalPossible =
-                h.frequency === 'daily'
-                ? daysRemaining
-                : Math.ceil((daysRemaining || 0) / 7)
+                const totalChecks = checks.filter((c) => c.habit_id === h.id).length
+              const totalPossible: number =
+  h.frequency === 'daily'
+    ? Number(daysRemaining ?? 0)
+    : Math.ceil(Number(daysRemaining ?? 0) / 7)
               const progressPercent =
                 totalPossible > 0
-                  ? Math.min(100, Math.round((totalChecks / totalPossible) * 100))
+                  ? Math.min(100, (totalChecks / totalPossible) * 100)
                   : 0
+
+                const doneToday = checks.some(
+                  (c) => c.habit_id === h.id && c.check_date === new Date().toISOString().split('T')[0]
+                )
 
               return (
                 <li key={h.id} className="border rounded px-3 py-3 space-y-2 bg-gradient-to-br from-gray-800/60 to-black/40 shadow-md" >
@@ -635,15 +659,16 @@ export default function Home() {
                       </p>
                     </div>
                     <div className="flex gap-2 items-center">
-                      {checks.some(
-                        (c) => c.habit_id === h.id && c.check_date === new Date().toISOString().split('T')[0]
-                      ) ? (
+                      {doneToday ? (
                         <span className="text-xs text-green-300 font-semibold">✔ Feito hoje</span>
                       ) : (
                         <button onClick={() => handleCheckHabitToday(h.id)} disabled={checkingHabitId === h.id} className="text-xs px-2 py-1 rounded bg-gradient-to-r from-emerald-400 to-green-600 text-black font-semibold shadow">Check hoje</button>
                       )}
                       <button onClick={() => handleDeleteHabit(h.id)} className="text-xs px-2 py-1 rounded bg-red-600/80 hover:bg-red-700 text-white font-semibold shadow">🗑</button>
                     </div>
+                    {doneToday && (
+                      <p className="text-xs text-gray-300 mt-2">Primeiro passo concluído. Não é sobre perfeição. É sobre voltar amanhã.</p>
+                    )}
                   </div>
                   {/* Barra de progresso */}
                   <div>
@@ -680,6 +705,13 @@ export default function Home() {
         </select>
         <button onClick={handleCreateCustomHabit} className="w-full py-2 rounded bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white shadow-md"> Criar hábito </button>
       </div>
+      {/* PASSO 1 DE HOJE: instrução antes das rotinas sugeridas */}
+      <div className="w-full max-w-md border-l-4 border-cyan-400/30 rounded p-4 bg-gradient-to-br from-white/4 to-white/2 shadow-sm backdrop-blur-sm">
+        <h2 className="text-xl font-semibold mb-2">Passo 1 de hoje</h2>
+        <p className="text-sm text-gray-300">📍 Escolha pelo menos <strong>UM</strong> hábito para acompanhar.</p>
+        <p className="text-sm text-gray-300 mt-1">Não tente mudar tudo. Comece pequeno. Continue todos os dias.</p>
+      </div>
+
       {/* ROTINAS SUGERIDAS */}
       <div className="w-full max-w-md border rounded p-4 bg-gradient-to-br from-white/3 to-white/2 shadow-lg backdrop-blur-sm">
         <h2 className="text-xl font-semibold mb-3">Rotinas sugeridas</h2>
@@ -689,12 +721,18 @@ export default function Home() {
                 <p className="font-medium text-white">{h.name}</p>
                 <p className="text-sm text-gray-300">{h.description}</p>
                 <p className="text-xs text-gray-400 mt-1"> Pilar: {h.pillar} •{' '} {h.frequency === 'daily' ? 'Diário' : 'Semanal'} </p>
-              <button onClick={() => handleAddSuggestedHabit(h)} disabled={userHabits.some( (uh) => uh.name.toLowerCase() === h.name.toLowerCase() )} className={`mt-2 px-3 py-1 text-sm rounded ${ userHabits.some( (uh) => uh.name.toLowerCase() === h.name.toLowerCase() ) ? 'bg-gray-300 text-gray-600' : 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow' }`} > {userHabits.some( (uh) => uh.name.toLowerCase() === h.name.toLowerCase() ) ? '✔ Já está na sua rotina' : '➕ Adicionar à minha rotina'} </button>
-            </li>
+                <p className="text-xs text-gray-400 italic mt-2">Sugestão inicial. Você pode ajustar ou remover depois.</p>
+                <button onClick={() => handleAddSuggestedHabit(h)} disabled={userHabits.some( (uh) => uh.name.toLowerCase() === h.name.toLowerCase() )} className={`mt-2 px-3 py-1 text-sm rounded ${ userHabits.some( (uh) => uh.name.toLowerCase() === h.name.toLowerCase() ) ? 'bg-gray-300 text-gray-600' : 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow' }`} > {userHabits.some( (uh) => uh.name.toLowerCase() === h.name.toLowerCase() ) ? '✔ Já está na sua rotina' : '➕ Adicionar à minha rotina'} </button>
+              </li>
           ))}
         </ul>
       </div>
       <div className="text-xs text-gray-500">Supabase conectado</div>
+      <footer className="w-full max-w-md text-center text-gray-400 mt-4">
+        <p className="font-medium">Projeto 14 Semanas</p>
+        <p className="text-xs mt-1">Criado por Kadu. @eusoukadusouza</p>
+        <p className="text-xs mt-1">Uma decisão por dia.</p>
+      </footer>
     </main>
   )
 }
