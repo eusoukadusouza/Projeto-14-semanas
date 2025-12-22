@@ -87,7 +87,9 @@ const getSunday = (date: Date) => {
   return new Date(d.setDate(diff))
 }
 
-const getSemanaIndex = (userStartDate: string, date: Date, durationDays = 95) => {
+const getSemanaIndex = (userStartDate?: string, date: Date = new Date, durationDays = 95) => {
+  if (!userStartDate) return 0 / / segurança absoluta
+
   // Parse date string (YYYY-MM-DD) to avoid timezone issues
   const [startYear, startMonth, startDay] = userStartDate.split('-').map(Number)
   const start = new Date(startYear, startMonth - 1, startDay, 0, 0, 0, 0)
@@ -435,7 +437,8 @@ export default function Home() {
   const maxWeeks = Math.ceil((project?.duration_days || 95) / 7) - 1
   // Use the global project start_date to determine which prophetic week is active
   const projectStart = project?.start_date || project?.user_start_date
-  const currentWeek = getSemanaIndex(projectStart, today, project?.duration_days || 95)
+  const currentWeek = projectStart
+  ? getSemanaIndex(projectStart, today, project?.duration_days || 95) : 0
   const isFinalWeek = currentWeek === maxWeeks
   const semanaAtiva = SEMANAS[currentWeek]
   // dias restantes no projeto a partir do início do usuário
