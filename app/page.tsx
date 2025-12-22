@@ -87,22 +87,32 @@ const getSunday = (date: Date) => {
   return new Date(d.setDate(diff))
 }
 
-const getSemanaIndex = (userStartDate?: string, date: Date = new Date, durationDays = 95) => {
-  if (!userStartDate) return 0 / / segurança absoluta
+const getSemanaIndex = (
+  userStartDate?: string,
+  date: Date = new Date(),
+  durationDays = 95
+) => {
+  if (!userStartDate) return 0 // segurança absoluta
 
-  // Parse date string (YYYY-MM-DD) to avoid timezone issues
   const [startYear, startMonth, startDay] = userStartDate.split('-').map(Number)
-  const start = new Date(startYear, startMonth - 1, startDay, 0, 0, 0, 0)
-  // Encontra o domingo da semana inicial
+
+  if (!startYear || !startMonth || !startDay) return 0
+
+  const start = new Date(startYear, startMonth - 1, startDay)
+  start.setHours(0, 0, 0, 0)
+
   const firstSunday = new Date(start)
   firstSunday.setDate(start.getDate() - start.getDay())
-  // Calcula dias desde o primeiro domingo
-  const current = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0, 0)
-  const diffMs = current.getTime() - firstSunday.getTime()
-  const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24))
-  // Cada semana tem 7 dias
+
+  const current = new Date(date)
+  current.setHours(0, 0, 0, 0)
+
+  const diffDays =
+    Math.floor((current.getTime() - firstSunday.getTime()) / (1000 * 60 * 60 * 24))
+
   const weekIndex = Math.floor(diffDays / 7)
   const maxWeeks = Math.ceil(durationDays / 7) - 1
+
   return Math.min(maxWeeks, Math.max(0, weekIndex))
 }
 
