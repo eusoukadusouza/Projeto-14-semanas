@@ -24,7 +24,7 @@ export default function LoginPage() {
 
     setLoading(true)
     try {
-      // 1) tenta entrar
+      // 1) tenta login
       const signIn = await supabase.auth.signInWithPassword({
         email: e,
         password,
@@ -35,19 +35,18 @@ export default function LoginPage() {
         return
       }
 
-      // 2) se falhar, tenta criar conta e entrar (onboarding sem fricção)
+      // 2) se falhar, cria conta automaticamente (onboarding humano)
       const signUp = await supabase.auth.signUp({
         email: e,
         password,
       })
 
-      // Se o projeto estiver com “Confirm email” ligado, pode exigir confirmação
       if (signUp.error) {
         setErrorMsg('Não foi possível entrar agora. Confira seus dados e tente novamente.')
         return
       }
 
-      // tenta logar logo após criar (funciona quando confirmação de email está desligada)
+      // 3) tenta logar após criar
       const signInAfter = await supabase.auth.signInWithPassword({
         email: e,
         password,
@@ -143,16 +142,4 @@ export default function LoginPage() {
       </div>
     </main>
   )
-}
-const router = useRouter()
-
-const handleLogin = async () => {
-  const { error } = await supabase.auth.signInWithPassword({
-    email,
-    password,
-  })
-
-  if (!error) {
-    router.push('/') // 👈 AQUI
-  }
 }
