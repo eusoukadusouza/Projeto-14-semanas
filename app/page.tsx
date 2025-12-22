@@ -635,6 +635,10 @@ export default function Home() {
           <ul className="space-y-2">
             {userHabits.map((h) => {
                 const totalChecks = checks.filter((c) => c.habit_id === h.id).length
+              const totalPossible: number =
+  h.frequency === 'daily'
+    ? Number(daysRemaining ?? 0)
+    : Math.ceil(Number(daysRemaining ?? 0) / 7)
               const progressPercent =
                 totalPossible > 0
                   ? Math.min(100, (totalChecks / totalPossible) * 100)
