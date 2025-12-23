@@ -129,6 +129,8 @@ export default function Home() {
   const [checking, setChecking] = useState(false)
   const [checkingHabitId, setCheckingHabitId] = useState<string | null>(null)
   const [currentUser, setCurrentUser] = useState<any | null>(null)
+  const [showCronograma, setShowCronograma] = useState(false)
+
 
   const getInitials = (user: any) => {
     const name = user?.user_metadata?.full_name || user?.email || ''
@@ -555,9 +557,11 @@ export default function Home() {
 
       <h1 className="text-4xl font-bold text-white tracking-tight mb-1">Projeto 14 Semanas</h1>
       <div className="flex flex-col items-center gap-2">
-        <p className="text-sm font-bold text-white bg-gradient-to-r from-cyan-500 to-blue-500 px-4 py-2 rounded-lg shadow-lg">
+      <button
+        onClick={() => setShowCronograma(true)}
+        className="text-sm font-bold text-white bg-gradient-to-r from-cyan-500 to-blue-500 px-4 py-2 rounded-lg shadow-lg">
           Semana {currentWeek + 1} — <span className="text-lg">{semanaAtiva}</span>
-        </p>
+        </button>
         {typeof daysRemaining === 'number' && (
           <p className="text-sm font-semibold text-white bg-orange-500/60 px-3 py-1 rounded shadow">⏱ Faltam {daysRemaining} dias</p>
         )}
@@ -746,6 +750,21 @@ export default function Home() {
         <p className="text-xs mt-1">Criado por Kadu. @eusoukadusouza</p>
         <p className="text-xs mt-1">Uma decisão por dia.</p>
       </footer>
+
+      {showCronograma && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white/10 border border-white/20 rounded-xl p-6 max-w-md w-full">
+            <h2 className="text-xl font-bold mb-4">Cronograma da Semana</h2>
+            <p className="text-sm text-gray-300 mb-4">Semana {currentWeek + 1} — {semanaAtiva}</p>
+            <ul className="space-y-2">
+              {cronograma.map((item, index) => (
+                <li key={index} className="text-sm text-gray-300">{item}</li>
+              ))}
+            </ul>
+            <button onClick={() => setShowCronograma(false)} className="mt-4 px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-500 text-white rounded-lg shadow-lg">Fechar</button>
+          </div>
+        </div>
+      )}
     </main>
   )
 }
