@@ -131,6 +131,8 @@ export default function Home() {
   const [currentUser, setCurrentUser] = useState<any | null>(null)
   const [showCronograma, setShowCronograma] = useState(false)
 
+  // ✅ Fonte única de verdade para "hoje"
+  const todayLocal = new Date().toLocaleDateString('en-CA')
 
   const getInitials = (user: any) => {
     const name = user?.user_metadata?.full_name || user?.email || ''
@@ -269,7 +271,7 @@ export default function Home() {
     if (!habit || checkedToday || checking) return
     setChecking(true)
     try {
-      const today = new Date().toISOString().split('T')[0]
+      const today = todayLocal
       const { data: session } = await supabase.auth.getSession()
       const user = session.session?.user
       if (!user) throw new Error('Usuário não autenticado')
@@ -400,7 +402,7 @@ export default function Home() {
     }
   }
   const handleCheckHabitToday = async (habitId: string) => {
-    const todayStr = new Date().toISOString().split('T')[0]
+    const todayStr = todayLocal
     // Se já marcado localmente, não faz nada
     if (checks.some((c) => c.habit_id === habitId && c.check_date === todayStr)) return
     if (checkingHabitId) return
@@ -444,6 +446,28 @@ export default function Home() {
   if (loading) {
     return <p className="p-8 text-center">Carregando...</p>
   }
+    // =========================
+  // CRONOGRAMA DAS SEMANAS
+  // =========================
+  const cronograma = SEMANAS.map((nome, index) => {
+    if (!project?.user_start_date) return nome
+
+    const start = new Date(project.user_start_date)
+    start.setDate(start.getDate() + index * 7)
+
+    const end = new Date(start)
+    end.setDate(start.getDate() + 6)
+
+    const fmt = (d: Date) =>
+      d.toLocaleDateString('pt-BR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: '2-digit',
+      })
+
+    return `${nome} (${fmt(start)} a ${fmt(end)})`
+  })
+
   const today = new Date()
   today.setHours(0, 0, 0, 0)
   const maxWeeks = Math.ceil((project?.duration_days || 95) / 7) - 1
@@ -606,7 +630,7 @@ export default function Home() {
         ) : (
           (() => {
             const isSunday = new Date().getDay() === 0
-            const todayStr = new Date().toISOString().split('T')[0]
+            const todayStr = todayLocal
             const todays = userHabits.filter((h) => h.frequency === 'daily' || (h.frequency === 'weekly' && isSunday))
             return todays.length === 0 ? (
               <p className="text-sm text-gray-300">Nenhum hábito para hoje.</p>
@@ -653,16 +677,16 @@ export default function Home() {
             {userHabits.map((h) => {
                 const totalChecks = checks.filter((c) => c.habit_id === h.id).length
               const totalPossible: number =
-  h.frequency === 'daily'
-    ? Number(daysRemaining ?? 0)
-    : Math.ceil(Number(daysRemaining ?? 0) / 7)
-              const progressPercent =
+               typeof h.target_numeric === 'number' && h.target_numeric > 0
+                 ? h.target_numeric
+                 : 0              
+                const progressPercent =
                 totalPossible > 0
                   ? Math.min(100, (totalChecks / totalPossible) * 100)
                   : 0
 
                 const doneToday = checks.some(
-                  (c) => c.habit_id === h.id && c.check_date === new Date().toISOString().split('T')[0]
+                  (c) => c.habit_id === h.id && c.check_date === todayLocal
                 )
 
               return (
@@ -757,9 +781,7 @@ export default function Home() {
             <h2 className="text-xl font-bold mb-4">Cronograma da Semana</h2>
             <p className="text-sm text-gray-300 mb-4">Semana {currentWeek + 1} — {semanaAtiva}</p>
             <ul className="space-y-2">
-              {cronograma.map((item, index) => (
-                <li key={index} className="text-sm text-gray-300">{item}</li>
-              ))}
+              const cronograma: string[] = []
             </ul>
             <button onClick={() => setShowCronograma(false)} className="mt-4 px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-500 text-white rounded-lg shadow-lg">Fechar</button>
           </div>
