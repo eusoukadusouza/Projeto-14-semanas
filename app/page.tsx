@@ -210,6 +210,22 @@ export default function Home() {
           .eq('user_id', user.id)
           .maybeSingle()
         if (!project) {
+          // 📌 Data de hoje (entrada do usuário)
+          const today = new Date()
+          today.setHours(0, 0, 0, 0)
+
+          // 📌 Fim fixo do projeto
+          const projectEnd = new Date('2026-03-18')
+          projectEnd.setHours(0, 0, 0, 0)
+
+          // 📌 Quantos dias o usuário terá a partir de hoje
+          const diffDays = Math.floor(
+          (projectEnd.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
+  )
+
+          // 📌 Congela o total (nunca pode ser 0)
+          const userGoalDays = Math.max(1, diffDays)
+
           const { data: newProject } = await supabase
             .from('projects')
             .insert({
@@ -219,6 +235,7 @@ export default function Home() {
               end_date: '2026-03-18',
               user_start_date: '2025-12-14',
               duration_days: 95,
+              user_goal_days: userGoalDays, // 🔒 congelado
             })
             .select()
             .single()
@@ -676,10 +693,10 @@ export default function Home() {
           <ul className="space-y-2">
             {userHabits.map((h) => {
                 const totalChecks = checks.filter((c) => c.habit_id === h.id).length
-              const totalPossible: number =
+              const totalPossible =
                typeof h.target_numeric === 'number' && h.target_numeric > 0
                  ? h.target_numeric
-                 : 0              
+                 : project?.user_goal_days || 1                             
                 const progressPercent =
                 totalPossible > 0
                   ? Math.min(100, (totalChecks / totalPossible) * 100)
